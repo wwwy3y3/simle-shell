@@ -42,7 +42,8 @@ void pidofexe(){
     struct dirent * ptr;
     dir =opendir("/proc");
     char cmds[32768][100]= {"\0"};
-    
+    int i;
+
     while((ptr = readdir(dir))!=NULL)
     {
     	char pathname[100];
@@ -64,7 +65,7 @@ void pidofexe(){
     }
 
     printf("pid 	name \n");
-    for (int i = 0; i < 32768; ++i)
+    for (i = 0; i < 32768; ++i)
     {
     	if(strcmp(cmds[i], "\0")!=0)
     		printf("%d 	  %s\n",i, cmds[i]);
@@ -81,6 +82,7 @@ void cpuinfo(){
 	size_t size = 0;
 	double mhz[20]= {0};
 	int core=0;
+	int i;
 	while(getline(&arg, &size, cmdline) != -1)
 	{
 		if(strstr(arg, "cpu MHz") != NULL) {
@@ -89,7 +91,7 @@ void cpuinfo(){
 	}
 
 	printf("processor	CPU MHZ \n");
-	for (int i = 0; i < core; ++i)
+	for (i = 0; i < core; ++i)
 	{
 		printf("%d    %lf\n", i,mhz[i]);
 	}
