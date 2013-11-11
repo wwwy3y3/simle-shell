@@ -33,8 +33,48 @@ void parse_args(char *buffer, char** args,
     args[j]=NULL;
 }
 
+void pidofexe(){
+	printf("pid");
+}
 
-int main(int argc, char *argv[], char *envp[]){
+void cpuinfo(){
+	FILE *cmdline = fopen("cpuinfo", "rb");
+	char *arg = 0;
+	char *str= ":";
+	char *found;
+	size_t size = 0;
+	double mhz[20]= {0};
+	int core=0;
+	while(getline(&arg, &size, cmdline) != -1)
+	{
+		if(strstr(arg, "cpu MHz") != NULL) {
+	        //found processor
+	        printf("found\n");
+	        //found= arg+11;
+	        sscanf(arg+11, "%lf", &mhz[core++]);
+		}
+	}
+
+	printf("processor	CPU MHZ \n");
+	for (int i = 0; i < core; ++i)
+	{
+		printf("%d    %lf\n", i,mhz[i]);
+	}
+	free(arg);
+	fclose(cmdline);
+}
+
+void innerCmd(char *cmd){
+	if(strcmp(cmd, "pidofexe")==0){
+		pidofexe();
+	}else if(strcmp(cmd, "cpuinfo")==0){
+		cpuinfo();
+	}
+}
+
+
+
+int main(int argc, char *argv[]){
     char buffer[BUFFER_SIZE];
     char *args[ARR_SIZE];
 
@@ -45,7 +85,12 @@ int main(int argc, char *argv[], char *envp[]){
     while(1){
         printf("$ ");
         fgets(buffer, BUFFER_SIZE, stdin);
-        parse_args(buffer, args, ARR_SIZE, &nargs); 
+        parse_args(buffer, args, ARR_SIZE, &nargs);
+
+        if(strcmp(args[0], "pidofexe")==0 || strcmp(args[0], "cpuinfo")==0){
+        	innerCmd(args[0]);
+        	continue;
+        }
 
         if (nargs==0) continue;
         if (!strcmp(args[0], "exit" )) exit(0);       
