@@ -47,7 +47,7 @@ void pidofexe(){
     while((ptr = readdir(dir))!=NULL)
     {
     	char pathname[100];
-        sprintf(pathname,"./%s", ptr->d_name);
+        sprintf(pathname,"/proc/%s", ptr->d_name);
         if((dir2 = opendir(pathname))!=NULL) {
             //printf("%s: file\n", ptr->d_name);
             int pid= strtol(ptr->d_name, NULL, 10);
