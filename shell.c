@@ -4,6 +4,8 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <dirent.h>
+
 #define BUFFER_SIZE 1<<16
 #define ARR_SIZE 1<<16
 
@@ -34,7 +36,41 @@ void parse_args(char *buffer, char** args,
 }
 
 void pidofexe(){
-	printf("pid");
+	DIR * dir;
+	DIR * dir2;
+	FILE *pidStat;
+    struct dirent * ptr;
+    dir =opendir("./");
+    char cmds[32768][100]= {"\0"};
+    
+    while((ptr = readdir(dir))!=NULL)
+    {
+    	char pathname[100];
+        sprintf(pathname,"./%s", ptr->d_name);
+        if((dir2 = opendir(pathname))!=NULL) {
+            //printf("%s: file\n", ptr->d_name);
+            int pid= strtol(ptr->d_name, NULL, 10);
+            if(pid != 0){ //a pid folder
+            	sprintf(pathname, "%s%s",pathname, "/stat");
+            	pidStat= fopen(pathname, "rb");
+            	char num[10];
+            	char proc[100];
+
+            	fscanf(pidStat, "%s", num);
+            	fscanf(pidStat, "%s", proc);
+            	strcpy(cmds[atoi(num)], proc);
+            }
+        }
+    }
+
+    printf("pid 	name \n");
+    for (int i = 0; i < 32768; ++i)
+    {
+    	if(strcmp(cmds[i], "\0")!=0)
+    		printf("%d 	  %s\n",i, cmds[i]);
+    }
+    //free(cmds);
+    closedir(dir);
 }
 
 void cpuinfo(){
@@ -48,9 +84,6 @@ void cpuinfo(){
 	while(getline(&arg, &size, cmdline) != -1)
 	{
 		if(strstr(arg, "cpu MHz") != NULL) {
-	        //found processor
-	        printf("found\n");
-	        //found= arg+11;
 	        sscanf(arg+11, "%lf", &mhz[core++]);
 		}
 	}
@@ -77,7 +110,6 @@ void innerCmd(char *cmd){
 int main(int argc, char *argv[]){
     char buffer[BUFFER_SIZE];
     char *args[ARR_SIZE];
-
     int *ret_status;
     size_t nargs;
     pid_t pid;
