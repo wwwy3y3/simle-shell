@@ -5,9 +5,11 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <dirent.h>
+#include <fcntl.h>
 
-#define BUFFER_SIZE 1<<16
-#define ARR_SIZE 1<<16
+#define BUFFER_SIZE 1024
+#define ARR_SIZE 1024
+
 
 void parse_args(char *buffer, char** args, 
                 size_t args_size, size_t *nargs)
@@ -35,12 +37,13 @@ void parse_args(char *buffer, char** args,
     args[j]=NULL;
 }
 
-void pidofexe(){
+void pidofexe(char** args){
 	DIR * dir;
 	DIR * dir2;
 	FILE *pidStat;
     struct dirent * ptr;
-    dir =opendir("/proc");
+    //dir =opendir("/proc");
+    dir =opendir("./");
     char cmds[32768][100]= {"\0"};
     int i;
 
@@ -48,6 +51,7 @@ void pidofexe(){
     {
     	char pathname[100];
         sprintf(pathname,"/proc/%s", ptr->d_name);
+        //sprintf(pathname,"./%s", ptr->d_name);
         if((dir2 = opendir(pathname))!=NULL) {
             //printf("%s: file\n", ptr->d_name);
             int pid= strtol(ptr->d_name, NULL, 10);
@@ -74,8 +78,9 @@ void pidofexe(){
     closedir(dir);
 }
 
-void cpuinfo(){
+void cpuinfo(char** args){
 	FILE *cmdline = fopen("/proc/cpuinfo", "rb");
+	//FILE *cmdline = fopen("./cpuinfo", "rb");
 	char *arg = 0;
 	char *str= ":";
 	char *found;
@@ -99,11 +104,11 @@ void cpuinfo(){
 	fclose(cmdline);
 }
 
-void innerCmd(char *cmd){
+void innerCmd(char *cmd, char** args){
 	if(strcmp(cmd, "pidofexe")==0){
-		pidofexe();
+		pidofexe(args);
 	}else if(strcmp(cmd, "cpuinfo")==0){
-		cpuinfo();
+		cpuinfo(args);
 	}
 }
 
@@ -112,30 +117,69 @@ void innerCmd(char *cmd){
 int main(int argc, char *argv[]){
     char buffer[BUFFER_SIZE];
     char *args[ARR_SIZE];
+    //cmd args
+    char *cmdArgs[ARR_SIZE]= {'\0'};
+    //redirect args
+    char *redArgs[ARR_SIZE]= {'\0'};
     int *ret_status;
     size_t nargs;
     pid_t pid;
+    int i,j;
+    int fd;
     
     while(1){
         printf("$ ");
         fgets(buffer, BUFFER_SIZE, stdin);
         parse_args(buffer, args, ARR_SIZE, &nargs);
 
-        if(strcmp(args[0], "pidofexe")==0 || strcmp(args[0], "cpuinfo")==0){
-        	innerCmd(args[0]);
-        	continue;
+        //empty
+        if (nargs==0) continue;
+        //exit
+        if (!strcmp(args[0], "exit" )) exit(0);
+
+        fd= 0;
+        memset(cmdArgs, '\0', sizeof cmdArgs);
+        memset(redArgs, '\0', sizeof redArgs);
+        //slice args
+        for (i=0,j=0; args[i] != '\0'; ++i)
+        {
+        	if(strcmp(args[i], ">")==0){
+        		redArgs[j++]= args[i++];	
+        		redArgs[j++]= args[i++];	
+        	}else{
+        		cmdArgs[i]= args[i];
+        	}
         }
 
-        if (nargs==0) continue;
-        if (!strcmp(args[0], "exit" )) exit(0);       
+        //outer cmd, fork  
         pid = fork();
         if (pid){
             printf("Waiting for child (%d)\n", pid);
             pid = wait(ret_status);
             printf("Child (%d) finished\n", pid);
         } else {
-            if( execvp(args[0], args)) {
-                puts(strerror(errno));
+        	
+        if(redArgs[0] != '\0'){ //redirect to file
+        		//open file
+        		fd = open(redArgs[1], O_RDWR | O_CREAT);
+        		//error
+        		if(!fd)
+        			fprintf(stderr, "Can't open input/create file!\n");
+        		//dup
+        		dup2(fd, 1);
+			}
+
+        //inner command
+        if(strcmp(args[0], "pidofexe")==0 || strcmp(args[0], "cpuinfo")==0){
+        	innerCmd(args[0], args);
+        	exit(127);
+        	continue;
+        }
+
+            if( execvp(args[0], cmdArgs)) {
+            	puts(strerror(errno));
+            	if(fd)
+            		close(fd);
                 exit(127);
             }
         }
