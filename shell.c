@@ -42,8 +42,8 @@ void pidofexe(char** args){
 	DIR * dir2;
 	FILE *pidStat;
     struct dirent * ptr;
-    //dir =opendir("/proc");
-    dir =opendir("./");
+    dir =opendir("/proc");
+    //dir =opendir("./");
     char cmds[32768][100]= {"\0"};
     int i;
 
