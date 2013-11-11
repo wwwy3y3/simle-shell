@@ -40,7 +40,7 @@ void pidofexe(){
 	DIR * dir2;
 	FILE *pidStat;
     struct dirent * ptr;
-    dir =opendir("./");
+    dir =opendir("/proc");
     char cmds[32768][100]= {"\0"};
     
     while((ptr = readdir(dir))!=NULL)
@@ -74,7 +74,7 @@ void pidofexe(){
 }
 
 void cpuinfo(){
-	FILE *cmdline = fopen("cpuinfo", "rb");
+	FILE *cmdline = fopen("/proc/cpuinfo", "rb");
 	char *arg = 0;
 	char *str= ":";
 	char *found;
